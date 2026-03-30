@@ -5,6 +5,9 @@ namespace App\Entity;
 use App\Repository\AnnonceRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 
 #[ORM\Entity(repositoryClass: AnnonceRepository::class)]
 class Annonce
@@ -12,30 +15,73 @@ class Annonce
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['annonce:read'])] // Ajouté pour pouvoir identifier l'annonce sur Angular
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['annonce:read'])]
     private ?string $titre = null;
 
     #[ORM\Column(type: Types::TEXT)]
+    #[Groups(['annonce:read'])] // Ajouté pour voir le texte de l'annonce !
     private ?string $description = null;
 
     #[ORM\Column(length: 50)]
+    #[Groups(['annonce:read'])]
     private ?string $statut = null;
 
     #[ORM\Column]
+    #[Groups(['annonce:read'])] // Ajouté pour voir quand elle a été postée
     private ?\DateTimeImmutable $dateCreation = null;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['annonce:read'])]
     private ?Categorie $categorie = null;
 
     #[ORM\ManyToOne(inversedBy: 'annoncesCreees')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['annonce:read'])]
     private ?User $createur = null;
 
-    #[ORM\ManyToOne(inversedBy: 'annoncesAidees')]
-    private ?User $helper = null;
+    #[ORM\OneToMany(targetEntity: Commentaire::class, mappedBy: 'annonce', orphanRemoval: true)]
+    #[Groups(['annonce:read'])]
+    private Collection $commentaires;
+
+    #[ORM\ManyToMany(targetEntity: User::class, inversedBy: 'annoncesAidees')]
+    #[ORM\JoinTable(name: 'annonce_helpers')]
+    #[Groups(['annonce:read'])]
+    private Collection $helpers;
+
+    public function __construct()
+    {
+        $this->helpers = new ArrayCollection();
+        $this->commentaires = new ArrayCollection();
+        $this->dateCreation = new \DateTimeImmutable();
+        $this->statut = 'En attente';
+    }
+
+    /**
+     * @return Collection<int, User>
+     */
+    public function getHelpers(): Collection
+    {
+        return $this->helpers;
+    }
+
+    public function addHelper(User $helper): static
+    {
+        if (!$this->helpers->contains($helper)) {
+            $this->helpers->add($helper);
+        }
+        return $this;
+    }
+
+    public function removeHelper(User $helper): static
+    {
+        $this->helpers->removeElement($helper);
+        return $this;
+    }
 
     public function getId(): ?int
     {
@@ -114,15 +160,11 @@ class Annonce
         return $this;
     }
 
-    public function getHelper(): ?User
+    /**
+     * @return Collection<int, Commentaire>
+     */
+    public function getCommentaires(): Collection
     {
-        return $this->helper;
-    }
-
-    public function setHelper(?User $helper): static
-    {
-        $this->helper = $helper;
-
-        return $this;
+        return $this->commentaires;
     }
 }
