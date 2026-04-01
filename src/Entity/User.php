@@ -56,7 +56,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private Collection $annoncesAidees;
 
     #[ORM\Column]
-    private ?bool $isBanned = null;
+    private ?bool $isBanned = false;
 
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $lastActivityAt = null;

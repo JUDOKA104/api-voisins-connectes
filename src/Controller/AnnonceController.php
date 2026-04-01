@@ -16,13 +16,14 @@ use Symfony\Component\Routing\Attribute\Route;
 class AnnonceController extends AbstractController
 {
     #[Route('', name: 'api_annonces_index', methods: ['GET'])]
-    public function index(AnnonceRepository $repository): JsonResponse
+    public function index(Request $request, AnnonceRepository $repository): JsonResponse
     {
         $catId = $request->query->get('categorie');
+
         if ($catId) {
-            $annonces = $repo->findBy(['categorie' => $catId]);
+            $annonces = $repository->findBy(['categorie' => $catId]);
         } else {
-            $annonces = $repo->findAll();
+            $annonces = $repository->findAll();
         }
 
         return $this->json($annonces, context: ['groups' => 'annonce:read']);
