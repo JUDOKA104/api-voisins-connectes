@@ -29,8 +29,14 @@ class AnnonceController extends AbstractController
         return $this->json($annonces, context: ['groups' => 'annonce:read']);
     }
 
+    #[Route('/{id}', name: 'api_annonces_show', methods: ['GET'])]
+    public function show(Annonce $annonce): JsonResponse
+    {
+        return $this->json($annonce, context: ['groups' => 'annonce:read']);
+    }
+
     #[Route('', name: 'api_annonces_create', methods: ['POST'])]
-    public function create(Request $request, EntityManagerInterface $em, \App\Repository\CategorieRepository $categorieRepo): JsonResponse
+    public function create(Request $request, EntityManagerInterface $em, CategorieRepository $categorieRepo): JsonResponse
     {
         $user = $this->getUser();
         $data = json_decode($request->getContent(), true);

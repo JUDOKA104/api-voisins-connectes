@@ -72,4 +72,11 @@ class AuthController extends AbstractController
 
         return new JsonResponse(['message' => 'Utilisateur créé avec succès'], Response::HTTP_CREATED);
     }
+
+    #[Route('/api/me', name: 'api_me', methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
+    public function me(): JsonResponse
+    {
+        return $this->json($this->getUser(), 200, [], ['groups' => 'annonce:read']);
+    }
 }

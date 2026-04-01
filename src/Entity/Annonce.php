@@ -53,6 +53,10 @@ class Annonce
     #[Groups(['annonce:read'])]
     private Collection $helpers;
 
+    #[ORM\Column(options: ["default" => false])]
+    #[Groups(['annonce:read'])]
+    private ?bool $estRemunere = false;
+
     public function __construct()
     {
         $this->helpers = new ArrayCollection();
@@ -166,5 +170,16 @@ class Annonce
     public function getCommentaires(): Collection
     {
         return $this->commentaires;
+    }
+
+    public function isEstRemunere(): ?bool
+    {
+        return $this->estRemunere;
+    }
+
+    public function setEstRemunere(bool $estRemunere): static
+    {
+        $this->estRemunere = $estRemunere;
+        return $this;
     }
 }
