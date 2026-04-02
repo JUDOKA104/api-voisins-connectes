@@ -23,6 +23,7 @@ security:
                 check_path: /api/login_check
                 success_handler: lexik_jwt_authentication.handler.authentication_success
                 failure_handler: lexik_jwt_authentication.handler.authentication_failure
+            user_checker: App\Security\UserChecker
             login_throttling:
                 max_attempts: 5          # Nombre d'essais autorisés
                 interval: '15 minutes'   # Temps de blocage avant de pouvoir réessayer
@@ -32,6 +33,7 @@ security:
             pattern: ^/api
             stateless: true
             jwt: ~
+            user_checker: App\Security\UserChecker
 
     access_control:
         - { path: ^/api/login, roles: PUBLIC_ACCESS }

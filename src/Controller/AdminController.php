@@ -9,6 +9,7 @@ use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -21,7 +22,6 @@ class AdminController extends AbstractController
     {
         $fifteenMinutesAgo = new \DateTimeImmutable('-15 minutes');
 
-        // Nombre d'utilisateurs actifs (15 dernières minutes)
         $activeUsersCount = $userRepo->createQueryBuilder('u')
             ->select('COUNT(u.id)')
             ->where('u.lastActivityAt >= :limit')
@@ -31,7 +31,6 @@ class AdminController extends AbstractController
             ->getQuery()
             ->getSingleScalarResult();
 
-        // Catégories les plus demandées (Top 3)
         $topCategories = $annonceRepo->createQueryBuilder('a')
             ->select('c.nom as categorie, COUNT(a.id) as nombre_annonces')
             ->join('a.categorie', 'c')
@@ -48,12 +47,66 @@ class AdminController extends AbstractController
         ]);
     }
 
-    #[Route('/users/{id}/ban', name: 'api_admin_user_ban', methods: ['PATCH'])]
-    public function banUser(User $user, EntityManagerInterface $em): JsonResponse
+    // 👇 RECHERCHE D'UTILISATEURS
+    #[Route('/users/search', name: 'api_admin_user_search', methods: ['GET'])]
+    public function searchUsers(Request $request, UserRepository $userRepo): JsonResponse
     {
-        $user->setIsBanned(true);
+        $query = $request->query->get('q', '');
+        if (empty($query)) return $this->json([]);
+
+        $users = $userRepo->createQueryBuilder('u')
+            ->where('u.email LIKE :q OR u.nom LIKE :q OR u.prenom LIKE :q')
+            ->setParameter('q', '%' . $query . '%')
+            ->setMaxResults(20)
+            ->getQuery()
+            ->getResult();
+
+        return $this->json($users, 200, [], ['groups' => 'annonce:read']);
+    }
+
+    #[Route('/users/{id}/annonces', name: 'api_admin_user_annonces', methods: ['GET'])]
+    public function getUserAnnonces(User $user, AnnonceRepository $annonceRepo): JsonResponse
+    {
+        $annonces = $annonceRepo->findBy(
+            ['createur' => $user],
+            ['dateCreation' => 'DESC']
+        );
+
+        return $this->json($annonces, 200, [], ['groups' => 'annonce:read']);
+    }
+
+    // 👇 BANNIR / DÉBANNIR (Toggle)
+    #[Route('/users/{id}/ban', name: 'api_admin_user_ban', methods: ['PATCH'])]
+    public function banUser(User $user, Request $request, EntityManagerInterface $em): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+
+        if ($user->isBanned()) {
+            // DÉBANNISSEMENT
+            $user->setIsBanned(false);
+            $user->setBanMotif(null);
+            $status = 'débanni';
+        } else {
+            // BANNISSEMENT
+            $user->setIsBanned(true);
+            $user->setBanMotif($data['motif'] ?? 'Aucun motif précisé');
+            $status = 'banni';
+        }
+
         $em->flush();
-        return $this->json(['message' => "L'utilisateur {$user->getEmail()} a été banni."]);
+
+        return $this->json([
+            'message' => "L'utilisateur {$user->getEmail()} a été $status.",
+            'isBanned' => $user->isBanned(),
+            'banMotif' => $user->getBanMotif()
+        ]);
+    }
+
+    #[Route('/users/banned', name: 'api_admin_users_banned', methods: ['GET'])]
+    public function getBannedUsers(UserRepository $userRepo): JsonResponse
+    {
+        $banned = $userRepo->findBy(['isBanned' => true]);
+        return $this->json($banned, 200, [], ['groups' => 'annonce:read']);
     }
 
     #[Route('/annonces/{id}', name: 'api_admin_annonce_delete', methods: ['DELETE'])]

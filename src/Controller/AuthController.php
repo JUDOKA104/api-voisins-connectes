@@ -79,4 +79,43 @@ class AuthController extends AbstractController
     {
         return $this->json($this->getUser(), 200, [], ['groups' => 'annonce:read']);
     }
+
+    #[Route('/api/me', name: 'api_me_update', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function updateProfile(Request $request, UserPasswordHasherInterface $passwordHasher, EntityManagerInterface $em): JsonResponse
+    {
+        $user = $this->getUser();
+
+        $email = $request->request->get('email');
+        $oldPassword = $request->request->get('oldPassword');
+        $newPassword = $request->request->get('newPassword');
+        $photoFile = $request->files->get('photoProfil');
+
+        if ($email) {
+            $user->setEmail($email);
+        }
+
+        if ($oldPassword && $newPassword) {
+            if (!$passwordHasher->isPasswordValid($user, $oldPassword)) {
+                return $this->json(['erreur' => 'L\'ancien mot de passe est incorrect.'], Response::HTTP_BAD_REQUEST);
+            }
+            $user->setPassword($passwordHasher->hashPassword($user, $newPassword));
+        }
+
+        if ($photoFile) {
+            $newFilename = uniqid('', true) . '.' . $photoFile->guessExtension();
+            $photoFile->move(
+                $this->getParameter('kernel.project_dir') . '/public/uploads/profils',
+                $newFilename
+            );
+            $user->setPhotoProfil('/uploads/profils/' . $newFilename);
+        }
+
+        $em->flush();
+
+        return $this->json([
+            'message' => 'Profil mis à jour avec succès.',
+            'photoProfil' => $user->getPhotoProfil()
+        ]);
+    }
 }

@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Commentaire;
 use App\Entity\Annonce;
 use App\Repository\AnnonceRepository;
+use App\Repository\CategorieRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -20,11 +21,17 @@ class AnnonceController extends AbstractController
     {
         $catId = $request->query->get('categorie');
 
+        $qb = $repository->createQueryBuilder('a')
+            ->join('a.createur', 'u')
+            ->where('u.isBanned = false');
+
         if ($catId) {
-            $annonces = $repository->findBy(['categorie' => $catId]);
-        } else {
-            $annonces = $repository->findAll();
+            $qb->andWhere('a.categorie = :catId')
+                ->setParameter('catId', $catId);
         }
+
+        // On trie de la plus récente à la plus ancienne
+        $annonces = $qb->orderBy('a.dateCreation', 'DESC')->getQuery()->getResult();
 
         return $this->json($annonces, context: ['groups' => 'annonce:read']);
     }
@@ -60,8 +67,10 @@ class AnnonceController extends AbstractController
 
         // On définit la date actuelle
         $annonce->setDateCreation(new \DateTimeImmutable());
+        $annonce->setEstRemunere($data['estRemunere'] ?? false);
 
         $annonce->setCreateur($user);
+        $annonce->setMaxHelpers(isset($data['maxHelpers']) && $data['maxHelpers'] !== '' ? (int) $data['maxHelpers'] : null);
         $annonce->setCategorie($categorie); // On lie la catégorie !
 
         $em->persist($annonce);
@@ -77,6 +86,10 @@ class AnnonceController extends AbstractController
 
         if ($annonce->getCreateur() === $user) {
             return $this->json(['erreur' => 'Vous ne pouvez pas vous aider vous-même'], Response::HTTP_FORBIDDEN);
+        }
+
+        if ($annonce->getMaxHelpers() !== null && $annonce->getHelpers()->count() >= $annonce->getMaxHelpers()) {
+            return $this->json(['erreur' => 'L\'annonce a déjà atteint le nombre maximum d\'aidants.'], Response::HTTP_BAD_REQUEST);
         }
 
         if ($annonce->getHelpers()->contains($user)) {
@@ -143,6 +156,30 @@ class AnnonceController extends AbstractController
         $em->flush();
 
         return $this->json(['message' => 'Statut mis à jour']);
+    }
+
+    #[Route('/{id}', name: 'api_annonces_update', methods: ['PUT', 'PATCH'])]
+    public function update(Annonce $annonce, Request $request, EntityManagerInterface $em, CategorieRepository $categorieRepo): JsonResponse
+    {
+        if ($annonce->getCreateur() !== $this->getUser()) {
+            return $this->json(['erreur' => 'Interdit'], Response::HTTP_FORBIDDEN);
+        }
+
+        $data = json_decode($request->getContent(), true);
+
+        if (isset($data['titre'])) $annonce->setTitre($data['titre']);
+        if (isset($data['description'])) $annonce->setDescription($data['description']);
+        if (isset($data['estRemunere'])) $annonce->setEstRemunere($data['estRemunere']);
+        if (isset($data['categorie_id'])) {
+            $annonce->setCategorie($categorieRepo->find($data['categorie_id']));
+        }
+
+        if (array_key_exists('maxHelpers', $data)) {
+            $annonce->setMaxHelpers($data['maxHelpers'] !== '' && $data['maxHelpers'] !== null ? (int) $data['maxHelpers'] : null);
+        }
+
+        $em->flush();
+        return $this->json(['message' => 'Annonce mise à jour']);
     }
 
     #[Route('/{id}', name: 'api_annonces_delete', methods: ['DELETE'])]

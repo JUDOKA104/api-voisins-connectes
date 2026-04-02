@@ -57,6 +57,10 @@ class Annonce
     #[Groups(['annonce:read'])]
     private ?bool $estRemunere = false;
 
+    #[ORM\Column(nullable: true)]
+    #[Groups(['annonce:read'])]
+    private ?int $maxHelpers = null;
+
     public function __construct()
     {
         $this->helpers = new ArrayCollection();
@@ -180,6 +184,18 @@ class Annonce
     public function setEstRemunere(bool $estRemunere): static
     {
         $this->estRemunere = $estRemunere;
+        return $this;
+    }
+
+    public function getMaxHelpers(): ?int
+    {
+        return $this->maxHelpers;
+    }
+
+    public function setMaxHelpers(?int $maxHelpers): static
+    {
+        $this->maxHelpers = $maxHelpers;
+
         return $this;
     }
 }

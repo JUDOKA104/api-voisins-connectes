@@ -25,6 +25,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $email = null;
 
     #[ORM\Column]
+    #[Groups(['annonce:read'])]
     private array $roles = [];
 
     /**
@@ -54,11 +55,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * @var Collection<int, Annonce>
      */
-    #[ORM\OneToMany(targetEntity: Annonce::class, mappedBy: 'helper')]
+    #[ORM\ManyToMany(targetEntity: Annonce::class, mappedBy: 'helpers')]
     private Collection $annoncesAidees;
 
     #[ORM\Column]
+    #[Groups(['annonce:read'])]
     private ?bool $isBanned = false;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['annonce:read'])]
+    private ?string $banMotif = null;
 
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $lastActivityAt = null;
@@ -196,7 +202,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         if (!$this->annoncesAidees->contains($annoncesAidee)) {
             $this->annoncesAidees->add($annoncesAidee);
-            $annoncesAidee->setHelper($this);
+            $annoncesAidee->addHelper($this);
         }
         return $this;
     }
@@ -204,9 +210,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function removeAnnoncesAidee(Annonce $annoncesAidee): static
     {
         if ($this->annoncesAidees->removeElement($annoncesAidee)) {
-            if ($annoncesAidee->getHelper() === $this) {
-                $annoncesAidee->setHelper(null);
-            }
+            $annoncesAidee->removeHelper($this);
         }
         return $this;
     }
@@ -219,6 +223,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setIsBanned(bool $isBanned): static
     {
         $this->isBanned = $isBanned;
+
+        return $this;
+    }
+
+    public function getBanMotif(): ?string
+    {
+        return $this->banMotif;
+    }
+
+    public function setBanMotif(?string $banMotif): static
+    {
+        $this->banMotif = $banMotif;
 
         return $this;
     }
