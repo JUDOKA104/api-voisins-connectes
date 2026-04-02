@@ -6,7 +6,7 @@ use App\Entity\User;
 use Symfony\Component\Security\Core\Exception\CustomUserMessageAccountStatusException;
 use Symfony\Component\Security\Core\User\UserCheckerInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
-use Symfony\Component\Security\Core\Authentication\Token\TokenInterface; // 👈 AJOUT DE L'IMPORT
+use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 
 class UserChecker implements UserCheckerInterface
 {
@@ -22,6 +22,5 @@ class UserChecker implements UserCheckerInterface
         }
     }
 
-    // 👇 MISE À JOUR DE LA SIGNATURE ICI 👇
     public function checkPostAuth(UserInterface $user, ?TokenInterface $token = null): void {}
 }

@@ -16,7 +16,7 @@ class CategorieController extends AbstractController
         // On récupère toutes les catégories de la BDD
         $categories = $repository->findAll();
 
-        // On les retourne en JSON (Idéalement avec des Groups de sérialisation)
+        // On les retourne en JSON
         return $this->json($categories);
     }
 }

@@ -32,7 +32,7 @@ class AuthController extends AbstractController
             return new JsonResponse(['erreur' => 'Tous les champs sont obligatoires'], Response::HTTP_BAD_REQUEST);
         }
 
-        // Vérifier si l'email existe déjà (optionnel mais recommandé)
+        // Vérifier si l'email existe déjà
         if ($entityManager->getRepository(User::class)->findOneBy(['email' => $email])) {
             return new JsonResponse(['erreur' => 'Cet email est déjà utilisé'], Response::HTTP_CONFLICT);
         }

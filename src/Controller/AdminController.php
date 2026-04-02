@@ -47,7 +47,6 @@ class AdminController extends AbstractController
         ]);
     }
 
-    // 👇 RECHERCHE D'UTILISATEURS
     #[Route('/users/search', name: 'api_admin_user_search', methods: ['GET'])]
     public function searchUsers(Request $request, UserRepository $userRepo): JsonResponse
     {
@@ -75,7 +74,6 @@ class AdminController extends AbstractController
         return $this->json($annonces, 200, [], ['groups' => 'annonce:read']);
     }
 
-    // 👇 BANNIR / DÉBANNIR (Toggle)
     #[Route('/users/{id}/ban', name: 'api_admin_user_ban', methods: ['PATCH'])]
     public function banUser(User $user, Request $request, EntityManagerInterface $em): JsonResponse
     {
